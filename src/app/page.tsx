@@ -1,103 +1,236 @@
-import Image from "next/image";
+"use client";
+
+import { Header } from "@/components/header";
+import { Sidebar } from "@/components/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useCampaigns, useRecentActivity } from "@/hooks/use-data";
+import { useSession } from "@/lib/auth-client";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { data: session } = useSession();
+  if (!session) {
+    redirect("/login");
+  }
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const {
+    data: campaignsData,
+    isLoading: campaignsLoading,
+    error: campaignsError,
+  } = useCampaigns();
+
+  const {
+    data: activityData,
+    isLoading: activityLoading,
+    error: activityError,
+  } = useRecentActivity(10);
+
+  const campaigns = campaignsData?.data || [];
+  const activities = activityData?.data || [];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "text-green-600 bg-green-50";
+      case "paused":
+        return "text-yellow-600 bg-yellow-50";
+      case "completed":
+        return "text-blue-600 bg-blue-50";
+      case "draft":
+        return "text-gray-600 bg-gray-50";
+      default:
+        return "text-gray-600 bg-gray-50";
+    }
+  };
+
+  const getActivityStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "text-purple-600 bg-purple-50";
+      case "contacted":
+        return "text-orange-600 bg-orange-50";
+      case "responded":
+        return "text-blue-600 bg-blue-50";
+      case "converted":
+        return "text-green-600 bg-green-50";
+      default:
+        return "text-gray-600 bg-gray-50";
+    }
+  };
+
+  // TODO: Replace with real LinkedIn accounts data when available
+  const linkedInAccounts: Array<{
+    name: string;
+    email: string;
+    requests: string;
+    progress: number;
+  }> = [];
+
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header
+          title="Dashboard"
+          subtitle="Overview of your campaigns and recent activity."
+        />
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Campaigns
+                  </h2>
+                  <select className="text-sm border border-gray-200 rounded-md px-3 py-1">
+                    <option>All Campaigns</option>
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  {campaignsLoading ? (
+                    <div className="text-center py-4">Loading campaigns...</div>
+                  ) : campaignsError ? (
+                    <div className="text-center py-4 text-red-600">
+                      Failed to load campaigns
+                    </div>
+                  ) : campaigns?.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      No campaigns found
+                    </div>
+                  ) : (
+                    campaigns?.map((campaign) => (
+                      <div
+                        key={campaign.id}
+                        className="flex items-center justify-between py-2"
+                      >
+                        <span className="text-gray-900">{campaign.name}</span>
+                        <Badge
+                          className={getStatusColor(
+                            campaign.status || "active",
+                          )}
+                        >
+                          {campaign.status || "Active"}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg border p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  LinkedIn Accounts
+                </h2>
+                <div className="space-y-4">
+                  {linkedInAccounts.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      No LinkedIn accounts connected
+                    </div>
+                  ) : (
+                    linkedInAccounts.map((account) => (
+                      <div
+                        key={account.name}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">
+                              {account.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {account.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {account.email}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge className="text-blue-600 bg-blue-50">
+                            Connected
+                          </Badge>
+                          <Progress value={account.progress} className="w-16" />
+                          <span className="text-xs text-gray-500">
+                            {account.requests}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Recent Activity
+                </h2>
+                <select className="text-sm border border-gray-200 rounded-md px-3 py-1">
+                  <option>Most Recent</option>
+                </select>
+              </div>
+              <div className="space-y-4">
+                {activityLoading ? (
+                  <div className="text-center py-4">
+                    Loading recent activity...
+                  </div>
+                ) : activityError ? (
+                  <div className="text-center py-4 text-red-600">
+                    Failed to load recent activity
+                  </div>
+                ) : activities?.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    No recent activity
+                  </div>
+                ) : (
+                  activities?.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-center space-x-3"
+                    >
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-gray-600">
+                          {activity.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {activity.name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {activity.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {activity.campaign}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Badge
+                          className={getActivityStatusColor(
+                            activity.status || "pending",
+                          )}
+                        >
+                          {activity.status || "pending"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

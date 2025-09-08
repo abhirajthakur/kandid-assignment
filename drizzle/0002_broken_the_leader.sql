@@ -1,0 +1,1 @@
+ALTER TABLE "campaigns" ADD COLUMN "created_date" timestamp with time zone DEFAULT now();
