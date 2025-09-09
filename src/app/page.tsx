@@ -4,30 +4,70 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { SimplePagination } from "@/components/ui/pagination";
 import { useCampaigns, useRecentActivity } from "@/hooks/use-data";
 import { useSession } from "@/lib/auth-client";
-import { redirect } from "next/navigation";
+import { type PaginationParams } from "@/lib/pagination";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const { data: session } = useSession();
-  if (!session) {
-    redirect("/login");
-  }
+  // All hooks must be called at the top level, before any conditional logic
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+
+  // Pagination state
+  const [campaignsPagination, setCampaignsPagination] = useState<PaginationParams>({
+    page: 1,
+    limit: 5, // Show fewer campaigns on dashboard
+  });
+
+  const [activityPagination, setActivityPagination] = useState<PaginationParams>({
+    page: 1,
+    limit: 10, // Show more activities
+  });
 
   const {
     data: campaignsData,
     isLoading: campaignsLoading,
     error: campaignsError,
-  } = useCampaigns();
+  } = useCampaigns(campaignsPagination);
 
   const {
     data: activityData,
     isLoading: activityLoading,
     error: activityError,
-  } = useRecentActivity(10);
+  } = useRecentActivity(activityPagination);
 
-  const campaigns = campaignsData?.data || [];
-  const activities = activityData?.data || [];
+  // Handle redirect to login if no session
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    }
+  }, [session, isPending, router]);
+
+  // Show loading state while session is being fetched
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Return null while redirecting
+  if (!session) {
+    return null;
+  }
+
+  const campaigns = campaignsData?.success ? campaignsData.data : [];
+  const campaignsMeta = campaignsData?.success ? campaignsData.meta : null;
+
+  const activities = activityData?.success ? activityData.data : [];
+  const activitiesMeta = activityData?.success ? activityData.meta : null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,6 +156,18 @@ export default function Home() {
                     ))
                   )}
                 </div>
+
+                {/* Campaigns Pagination */}
+                {campaignsMeta && (
+                  <div className="mt-4 pt-4 border-t">
+                    <SimplePagination
+                      meta={campaignsMeta}
+                      onPageChange={(page) =>
+                        setCampaignsPagination(prev => ({ ...prev, page }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-lg border p-6">
@@ -227,6 +279,18 @@ export default function Home() {
                   ))
                 )}
               </div>
+
+              {/* Recent Activity Pagination */}
+              {activitiesMeta && (
+                <div className="mt-4 pt-4 border-t">
+                  <SimplePagination
+                    meta={activitiesMeta}
+                    onPageChange={(page) =>
+                      setActivityPagination(prev => ({ ...prev, page }))
+                    }
+                  />
+                </div>
+              )}
             </div>
           </div>
         </main>

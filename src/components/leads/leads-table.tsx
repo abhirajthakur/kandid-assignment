@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -13,9 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useLeads } from "@/hooks/use-data";
+import { useDebouncedSearch } from "@/hooks/use-debounce";
 import { Lead, useAppStore } from "@/lib/store";
+import { type PaginationParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { Filter, Search } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -32,22 +36,46 @@ const activityIcons = {
 };
 
 export function LeadsTable() {
-  const { setSelectedLead, setLeadDetailOpen, leadsFilter, setLeadsFilter } =
-    useAppStore();
+  const { setSelectedLead, setLeadDetailOpen } = useAppStore();
+
+  // Debounced search
+  const { searchValue, debouncedSearchValue, setSearchValue } = useDebouncedSearch('', 300);
+
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationParams>({
+    page: 1,
+    limit: 10,
+  });
+
+  // Update pagination when debounced search value changes
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      page: 1, // Reset to first page when search changes
+      search: debouncedSearchValue || undefined, // Convert empty string to undefined
+    }));
+  }, [debouncedSearchValue]);
+
   const {
     data: leadsData,
     isLoading,
     error,
-  } = useLeads({ search: leadsFilter });
+  } = useLeads(pagination);
 
   const leads = leadsData?.success ? leadsData.data : [];
-
-  // Filtering is now handled by the API via the search parameter
-  const filteredLeads = leads;
+  const meta = leadsData?.success ? leadsData.meta : null;
 
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
     setLeadDetailOpen(true);
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }));
+  };
+
+  const handlePageSizeChange = (limit: number) => {
+    setPagination(prev => ({ ...prev, page: 1, limit }));
   };
 
   return (
@@ -57,9 +85,9 @@ export function LeadsTable() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search leads..."
-            value={leadsFilter}
-            onChange={(e) => setLeadsFilter(e.target.value)}
+            placeholder="Search leads by name..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -96,7 +124,7 @@ export function LeadsTable() {
                   Failed to load leads
                 </TableCell>
               </TableRow>
-            ) : filteredLeads?.length === 0 ? (
+            ) : leads?.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={4}
@@ -106,7 +134,7 @@ export function LeadsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLeads?.map((lead) => (
+              leads?.map((lead) => (
                 <TableRow
                   key={lead.id}
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -115,7 +143,7 @@ export function LeadsTable() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-medium">
                           {lead.name
                             .split(" ")
                             .map((n) => n[0])
@@ -163,6 +191,17 @@ export function LeadsTable() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {meta && (
+        <div className="mt-6">
+          <Pagination
+            meta={meta}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

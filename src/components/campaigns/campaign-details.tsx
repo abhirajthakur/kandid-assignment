@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCampaign, useLeads } from "@/hooks/use-data";
+import { type PaginationParams } from "@/lib/pagination";
 import {
+  ArrowLeft,
   BarChart3,
   Calendar,
   CheckCircle,
@@ -17,6 +19,8 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { CampaignLeadsTable } from "./campaign-leads-table";
 
 interface CampaignDetailsProps {
@@ -24,15 +28,26 @@ interface CampaignDetailsProps {
 }
 
 export function CampaignDetails({ campaignId }: CampaignDetailsProps) {
+  const router = useRouter();
+  const [leadsPagination, setLeadsPagination] = useState<PaginationParams>({
+    page: 1,
+    limit: 10,
+  });
+
   const {
     data: campaignData,
     isLoading: campaignLoading,
     error: campaignError,
   } = useCampaign(campaignId);
-  const { data: leadsData } = useLeads({ campaign: campaignData?.data?.name });
+
+  const { data: leadsData } = useLeads({
+    ...leadsPagination,
+    campaign: campaignData?.data?.name
+  });
 
   const campaign = campaignData?.data;
-  const campaignLeads = leadsData?.data;
+  const campaignLeads = leadsData?.success ? leadsData.data : [];
+  const leadsMeta = leadsData?.success ? leadsData.meta : null;
 
   if (campaignLoading) {
     return <div className="p-6">Loading campaign...</div>;
@@ -75,6 +90,19 @@ export function CampaignDetails({ campaignId }: CampaignDetailsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Campaigns
+        </Button>
+      </div>
+
       {/* Campaign Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -210,7 +238,12 @@ export function CampaignDetails({ campaignId }: CampaignDetailsProps) {
         </TabsContent>
 
         <TabsContent value="leads">
-          <CampaignLeadsTable leads={campaignLeads} />
+          <CampaignLeadsTable
+            leads={campaignLeads}
+            meta={leadsMeta}
+            onPageChange={(page) => setLeadsPagination(prev => ({ ...prev, page }))}
+            onPageSizeChange={(limit) => setLeadsPagination(prev => ({ ...prev, page: 1, limit }))}
+          />
         </TabsContent>
 
         <TabsContent value="sequence">

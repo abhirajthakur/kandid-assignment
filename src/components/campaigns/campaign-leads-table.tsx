@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import type { Lead } from "@/lib/store";
 import { useAppStore } from "@/lib/store";
+import { type PaginationMeta } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { Filter, Search } from "lucide-react";
 import { useState } from "react";
@@ -27,13 +29,22 @@ const statusColors = {
 
 interface CampaignLeadsTableProps {
   leads: Lead[] | undefined;
+  meta?: PaginationMeta | null;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
-export function CampaignLeadsTable({ leads }: CampaignLeadsTableProps) {
+export function CampaignLeadsTable({
+  leads,
+  meta,
+  onPageChange,
+  onPageSizeChange
+}: CampaignLeadsTableProps) {
   const { setSelectedLead } = useAppStore();
   const [searchFilter, setSearchFilter] = useState("");
 
-  const filteredLeads = leads?.filter(
+  // If pagination is being handled externally, don't filter here
+  const displayLeads = meta ? leads : leads?.filter(
     (lead) =>
       lead.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
       lead.company.toLowerCase().includes(searchFilter.toLowerCase()),
@@ -70,7 +81,7 @@ export function CampaignLeadsTable({ leads }: CampaignLeadsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLeads?.map((lead) => (
+            {displayLeads?.map((lead) => (
               <TableRow
                 key={lead.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -123,6 +134,17 @@ export function CampaignLeadsTable({ leads }: CampaignLeadsTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {meta && onPageChange && onPageSizeChange && (
+        <div className="mt-6">
+          <Pagination
+            meta={meta}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { useCampaigns } from "@/hooks/use-data";
+import { useDebouncedSearch } from "@/hooks/use-debounce";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -23,6 +25,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type PaginationParams } from "@/lib/pagination";
+import { useState, useEffect } from "react";
 
 const statusColors = {
   draft: "bg-gray-100 text-gray-800 border-gray-200",
@@ -33,17 +37,54 @@ const statusColors = {
 
 export function CampaignsTable() {
   const router = useRouter();
-  const { campaignsFilter, setCampaignsFilter } = useAppStore();
-  const { data: campaignsData, isLoading, error } = useCampaigns();
+
+  // Debounced search
+  const { searchValue, debouncedSearchValue, setSearchValue } = useDebouncedSearch('', 300);
+
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationParams>({
+    page: 1,
+    limit: 10,
+    search: debouncedSearchValue,
+    status: statusFilter === "all" ? undefined : statusFilter,
+  });
+
+  // Update pagination when debounced search value changes
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      page: 1, // Reset to first page when search changes
+      search: debouncedSearchValue,
+    }));
+  }, [debouncedSearchValue]);
+
+  // Update pagination when status filter changes
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      page: 1, // Reset to first page when status changes
+      status: statusFilter === "all" ? undefined : statusFilter,
+    }));
+  }, [statusFilter]);
+
+  const { data: campaignsData, isLoading, error } = useCampaigns(pagination);
 
   const campaigns = campaignsData?.success ? campaignsData.data : [];
-
-  const filteredCampaigns = campaigns?.filter((campaign) =>
-    campaign.name.toLowerCase().includes(campaignsFilter.toLowerCase()),
-  );
+  const meta = campaignsData?.success ? campaignsData.meta : null;
 
   const handleCampaignClick = (campaignId: string) => {
     router.push(`/campaigns/${campaignId}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }));
+  };
+
+  const handlePageSizeChange = (limit: number) => {
+    setPagination(prev => ({ ...prev, page: 1, limit }));
   };
 
   return (
@@ -53,9 +94,9 @@ export function CampaignsTable() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search campaigns..."
-            value={campaignsFilter}
-            onChange={(e) => setCampaignsFilter(e.target.value)}
+            placeholder="Search campaigns by name..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -69,14 +110,38 @@ export function CampaignsTable() {
       <div className="flex items-center gap-1 border-b border-border">
         <Button
           variant="ghost"
-          className="border-b-2 border-primary text-primary"
+          onClick={() => setStatusFilter("all")}
+          className={cn(
+            "border-b-2",
+            statusFilter === "all"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
         >
           All Campaigns
         </Button>
-        <Button variant="ghost" className="text-muted-foreground">
+        <Button
+          variant="ghost"
+          onClick={() => setStatusFilter("active")}
+          className={cn(
+            "border-b-2",
+            statusFilter === "active"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
           Active
         </Button>
-        <Button variant="ghost" className="text-muted-foreground">
+        <Button
+          variant="ghost"
+          onClick={() => setStatusFilter("inactive")}
+          className={cn(
+            "border-b-2",
+            statusFilter === "inactive"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
           Inactive
         </Button>
       </div>
@@ -109,7 +174,7 @@ export function CampaignsTable() {
                   Failed to load campaigns
                 </TableCell>
               </TableRow>
-            ) : filteredCampaigns?.length === 0 ? (
+            ) : campaigns?.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -119,7 +184,7 @@ export function CampaignsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredCampaigns?.map((campaign) => (
+              campaigns?.map((campaign) => (
                 <TableRow
                   key={campaign.id}
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -180,6 +245,17 @@ export function CampaignsTable() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {meta && (
+        <div className="mt-6">
+          <Pagination
+            meta={meta}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

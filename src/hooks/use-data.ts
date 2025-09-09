@@ -1,28 +1,29 @@
 // "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  getAllCampaigns, 
-  getCampaignById, 
-  createCampaign, 
-  updateCampaign, 
-  deleteCampaign 
+import {
+  getAllCampaigns,
+  getCampaignById,
+  createCampaign,
+  updateCampaign,
+  deleteCampaign
 } from "@/actions/campaigns";
-import { 
-  getAllLeads, 
-  getLeadById, 
-  createLead, 
-  updateLead, 
-  updateLeadStatus, 
-  deleteLead, 
-  getRecentActivity 
+import {
+  getAllLeads,
+  getLeadById,
+  createLead,
+  updateLead,
+  updateLeadStatus,
+  deleteLead,
+  getRecentActivity
 } from "@/actions/leads";
+import { type PaginationParams } from "@/lib/pagination";
 
 // Campaign hooks
-export function useCampaigns() {
+export function useCampaigns(params: PaginationParams = {}) {
   return useQuery({
-    queryKey: ["campaigns"],
-    queryFn: getAllCampaigns,
+    queryKey: ["campaigns", params.page, params.limit, params.search, params.status, params.campaign],
+    queryFn: () => getAllCampaigns(params),
   });
 }
 
@@ -69,14 +70,10 @@ export function useDeleteCampaign() {
 }
 
 // Lead hooks
-export function useLeads(filters?: {
-  status?: string;
-  campaign?: string;
-  search?: string;
-}) {
+export function useLeads(params: PaginationParams = {}) {
   return useQuery({
-    queryKey: ["leads", filters],
-    queryFn: () => getAllLeads(filters),
+    queryKey: ["leads", params.page, params.limit, params.search, params.status, params.campaign],
+    queryFn: () => getAllLeads(params),
   });
 }
 
@@ -140,9 +137,9 @@ export function useDeleteLead() {
 }
 
 // Activity hooks
-export function useRecentActivity(limit?: number) {
+export function useRecentActivity(params: PaginationParams = {}) {
   return useQuery({
-    queryKey: ["recent-activity", limit],
-    queryFn: () => getRecentActivity(limit),
+    queryKey: ["recent-activity", params],
+    queryFn: () => getRecentActivity(params),
   });
 }
