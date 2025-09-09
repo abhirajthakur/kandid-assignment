@@ -4,12 +4,32 @@ import { CampaignsTable } from "@/components/campaigns/campaigns-table";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { useSession } from "@/lib/auth-client";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function CampaignsPage() {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    }
+  }, [session, isPending, router]);
+
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) {
-    redirect("/sign-in");
+    return null;
   }
 
   return (

@@ -21,7 +21,6 @@ import {
   Megaphone,
   MessageSquare,
   Settings,
-  User,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -103,7 +102,7 @@ export function Sidebar() {
             <Button variant="ghost" className="w-full justify-start p-2 h-auto">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground font-medium">
                     {currentUser?.name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -121,15 +120,6 @@ export function Sidebar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Log out
@@ -239,7 +229,7 @@ export function Sidebar() {
               sidebarCollapsed && "px-2",
             )}
           >
-            <User className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} />
+            <Users className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} />
             {!sidebarCollapsed && <span>User logs</span>}
           </Button>
         </div>

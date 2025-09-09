@@ -19,7 +19,7 @@ export default async function CampaignPage({
   });
 
   if (!session) {
-    redirect("/sign-in");
+    redirect("/login");
   }
 
   return (

@@ -6,24 +6,73 @@ import {
   insertCampaignSchema,
   updateCampaignSchema,
 } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import {
+  calculatePagination,
+  createPaginationMeta,
+  type PaginationParams,
+  type PaginatedResponse
+} from "@/lib/pagination";
+import { desc, eq, count, like, ilike, and, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function getAllCampaigns() {
+export async function getAllCampaigns(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
   try {
-    const campaigns = await db
+    const { page, limit, offset } = calculatePagination(params);
+
+    // Build where conditions
+    const conditions = [];
+    if (params.search) {
+      conditions.push(ilike(campaignTable.name, `%${params.search}%`));
+    }
+    if (params.status) {
+      if (params.status === "active") {
+        conditions.push(eq(campaignTable.status, "active"));
+      } else if (params.status === "inactive") {
+        // Inactive includes draft, paused, and completed
+        conditions.push(
+          or(
+            eq(campaignTable.status, "draft"),
+            eq(campaignTable.status, "paused"),
+            eq(campaignTable.status, "completed")
+          )
+        );
+      }
+    }
+
+    // Get total count
+    let countQuery = db.select({ count: count() }).from(campaignTable);
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions));
+    }
+    const [{ count: total }] = await countQuery;
+
+    // Get paginated data
+    let dataQuery = db
       .select()
       .from(campaignTable)
-      .orderBy(desc(campaignTable.name));
+      .orderBy(desc(campaignTable.createdAt));
+
+    if (conditions.length > 0) {
+      dataQuery = dataQuery.where(and(...conditions));
+    }
+
+    const campaigns = await dataQuery
+      .limit(limit)
+      .offset(offset);
+
+    const meta = createPaginationMeta(page, limit, total);
 
     return {
       success: true,
       data: campaigns,
+      meta,
     };
   } catch (error) {
     console.error("Error fetching campaigns:", error);
     return {
       success: false,
+      data: [],
+      meta: createPaginationMeta(1, 10, 0),
       error: "Failed to fetch campaigns",
     };
   }
