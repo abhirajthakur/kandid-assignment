@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useAppStore } from "@/lib/store";
 import { useCampaigns } from "@/hooks/use-data";
 import { useDebouncedSearch } from "@/hooks/use-debounce";
 import { Badge } from "@/components/ui/badge";

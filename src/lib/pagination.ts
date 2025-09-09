@@ -79,7 +79,7 @@ export function generatePageNumbers(currentPage: number, totalPages: number, max
 
   const half = Math.floor(maxVisible / 2);
   let start = Math.max(1, currentPage - half);
-  let end = Math.min(totalPages, start + maxVisible - 1);
+  const end = Math.min(totalPages, start + maxVisible - 1);
 
   // Adjust start if we're near the end
   if (end - start + 1 < maxVisible) {

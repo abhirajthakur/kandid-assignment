@@ -9,13 +9,15 @@ import {
 import {
   calculatePagination,
   createPaginationMeta,
+  type PaginatedResponse,
   type PaginationParams,
-  type PaginatedResponse
 } from "@/lib/pagination";
-import { desc, eq, count, like, ilike, and, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function getAllCampaigns(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
+export async function getAllCampaigns(
+  params: PaginationParams = {},
+): Promise<PaginatedResponse<typeof campaignTable.$inferSelect>> {
   try {
     const { page, limit, offset } = calculatePagination(params);
 
@@ -33,8 +35,8 @@ export async function getAllCampaigns(params: PaginationParams = {}): Promise<Pa
           or(
             eq(campaignTable.status, "draft"),
             eq(campaignTable.status, "paused"),
-            eq(campaignTable.status, "completed")
-          )
+            eq(campaignTable.status, "completed"),
+          ),
         );
       }
     }
@@ -42,6 +44,7 @@ export async function getAllCampaigns(params: PaginationParams = {}): Promise<Pa
     // Get total count
     let countQuery = db.select({ count: count() }).from(campaignTable);
     if (conditions.length > 0) {
+      // @ts-expect-error - Drizzle typing issue with dynamic conditions
       countQuery = countQuery.where(and(...conditions));
     }
     const [{ count: total }] = await countQuery;
@@ -53,12 +56,11 @@ export async function getAllCampaigns(params: PaginationParams = {}): Promise<Pa
       .orderBy(desc(campaignTable.createdAt));
 
     if (conditions.length > 0) {
+      // @ts-expect-error - Drizzle typing issue with dynamic conditions
       dataQuery = dataQuery.where(and(...conditions));
     }
 
-    const campaigns = await dataQuery
-      .limit(limit)
-      .offset(offset);
+    const campaigns = await dataQuery.limit(limit).offset(offset);
 
     const meta = createPaginationMeta(page, limit, total);
 

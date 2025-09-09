@@ -12,20 +12,20 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  // All hooks must be called at the top level, before any conditional logic
   const { data: session, isPending } = useSession();
   const router = useRouter();
 
-  // Pagination state
-  const [campaignsPagination, setCampaignsPagination] = useState<PaginationParams>({
-    page: 1,
-    limit: 5, // Show fewer campaigns on dashboard
-  });
+  const [campaignsPagination, setCampaignsPagination] =
+    useState<PaginationParams>({
+      page: 1,
+      limit: 5,
+    });
 
-  const [activityPagination, setActivityPagination] = useState<PaginationParams>({
-    page: 1,
-    limit: 10, // Show more activities
-  });
+  const [activityPagination, setActivityPagination] =
+    useState<PaginationParams>({
+      page: 1,
+      limit: 10,
+    });
 
   const {
     data: campaignsData,
@@ -46,7 +46,6 @@ export default function Home() {
     }
   }, [session, isPending, router]);
 
-  // Show loading state while session is being fetched
   if (isPending) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -58,16 +57,15 @@ export default function Home() {
     );
   }
 
-  // Return null while redirecting
   if (!session) {
     return null;
   }
 
-  const campaigns = campaignsData?.success ? campaignsData.data : [];
-  const campaignsMeta = campaignsData?.success ? campaignsData.meta : null;
+  const campaigns = campaignsData?.data ?? [];
+  const campaignsMeta = campaignsData?.meta ?? null;
 
-  const activities = activityData?.success ? activityData.data : [];
-  const activitiesMeta = activityData?.success ? activityData.meta : null;
+  const activities = activityData?.data ?? [];
+  const activitiesMeta = activityData?.meta ?? null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -163,7 +161,7 @@ export default function Home() {
                     <SimplePagination
                       meta={campaignsMeta}
                       onPageChange={(page) =>
-                        setCampaignsPagination(prev => ({ ...prev, page }))
+                        setCampaignsPagination((prev) => ({ ...prev, page }))
                       }
                     />
                   </div>
@@ -251,7 +249,7 @@ export default function Home() {
                         <span className="text-xs font-medium text-gray-600">
                           {activity.name
                             .split(" ")
-                            .map((n) => n[0])
+                            .map((n: string) => n[0])
                             .join("")}
                         </span>
                       </div>
@@ -286,7 +284,7 @@ export default function Home() {
                   <SimplePagination
                     meta={activitiesMeta}
                     onPageChange={(page) =>
-                      setActivityPagination(prev => ({ ...prev, page }))
+                      setActivityPagination((prev) => ({ ...prev, page }))
                     }
                   />
                 </div>

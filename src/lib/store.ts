@@ -7,7 +7,7 @@ interface Lead {
   company: string;
   title: string;
   campaignId: string;
-  campaignName?: string; // This will be populated from the join
+  campaignName?: string | null; // This will be populated from the join
   status: "pending" | "contacted" | "responded" | "converted" | null;
   lastContactDate: Date | null;
 }

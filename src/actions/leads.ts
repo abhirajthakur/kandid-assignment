@@ -1,17 +1,24 @@
 "use server";
 
 import { db } from "@/db";
-import { insertLeadsSchema, leadsTable, campaignTable, updateLeadsSchema } from "@/db/schema";
+import {
+  campaignTable,
+  insertLeadsSchema,
+  leadsTable,
+  updateLeadsSchema,
+} from "@/db/schema";
 import {
   calculatePagination,
   createPaginationMeta,
+  type PaginatedResponse,
   type PaginationParams,
-  type PaginatedResponse
 } from "@/lib/pagination";
-import { and, desc, eq, like, ilike, count } from "drizzle-orm";
+import { and, count, desc, eq, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function getAllLeads(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
+export async function getAllLeads(
+  params: PaginationParams = {},
+): Promise<PaginatedResponse<typeof leadsTable.$inferSelect & { campaignName?: string | null }>> {
   try {
     const { page, limit, offset } = calculatePagination(params);
 
@@ -19,7 +26,12 @@ export async function getAllLeads(params: PaginationParams = {}): Promise<Pagina
     const conditions = [];
 
     if (params.status && params.status !== "all") {
-      conditions.push(eq(leadsTable.status, params.status as "pending" | "contacted" | "responded" | "converted"));
+      conditions.push(
+        eq(
+          leadsTable.status,
+          params.status as "pending" | "contacted" | "responded" | "converted",
+        ),
+      );
     }
 
     if (params.campaign) {
@@ -31,28 +43,34 @@ export async function getAllLeads(params: PaginationParams = {}): Promise<Pagina
     }
 
     // Get total count
-    let countQuery = db.select({ count: count() }).from(leadsTable)
+    let countQuery = db
+      .select({ count: count() })
+      .from(leadsTable)
       .leftJoin(campaignTable, eq(leadsTable.campaignId, campaignTable.id));
     if (conditions.length > 0) {
+      // @ts-expect-error - Drizzle typing issue with dynamic conditions
       countQuery = countQuery.where(and(...conditions));
     }
     const [{ count: total }] = await countQuery;
 
     // Get paginated data with campaign name
-    let dataQuery = db.select({
-      id: leadsTable.id,
-      name: leadsTable.name,
-      email: leadsTable.email,
-      company: leadsTable.company,
-      title: leadsTable.title,
-      campaignId: leadsTable.campaignId,
-      campaignName: campaignTable.name,
-      status: leadsTable.status,
-      lastContactDate: leadsTable.lastContactDate,
-    }).from(leadsTable)
+    let dataQuery = db
+      .select({
+        id: leadsTable.id,
+        name: leadsTable.name,
+        email: leadsTable.email,
+        company: leadsTable.company,
+        title: leadsTable.title,
+        campaignId: leadsTable.campaignId,
+        campaignName: campaignTable.name,
+        status: leadsTable.status,
+        lastContactDate: leadsTable.lastContactDate,
+      })
+      .from(leadsTable)
       .leftJoin(campaignTable, eq(leadsTable.campaignId, campaignTable.id));
 
     if (conditions.length > 0) {
+      // @ts-expect-error - Drizzle typing issue with dynamic conditions
       dataQuery = dataQuery.where(and(...conditions));
     }
 
@@ -107,7 +125,9 @@ export async function getLeadById(id: string) {
   }
 }
 
-export async function getRecentActivity(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
+export async function getRecentActivity(
+  params: PaginationParams = {},
+): Promise<PaginatedResponse<typeof leadsTable.$inferSelect & { campaignName?: string | null; title: string; campaign: string | null }>> {
   try {
     const { page, limit, offset } = calculatePagination({
       ...params,

@@ -1,5 +1,6 @@
 // Load environment variables only in Node.js runtime (not edge)
 if (typeof window === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("dotenv/config");
 }
 

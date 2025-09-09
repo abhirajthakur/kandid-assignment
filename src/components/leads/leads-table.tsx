@@ -19,7 +19,7 @@ import { Lead, useAppStore } from "@/lib/store";
 import { type PaginationParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { Filter, Search } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200",

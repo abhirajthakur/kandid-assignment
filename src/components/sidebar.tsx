@@ -6,7 +6,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "@/lib/auth-client";
@@ -45,7 +44,6 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Use session data if available, otherwise fall back to store
   const currentUser = session?.user || user;
 
   const handleLogout = async () => {
@@ -63,7 +61,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        "flex flex-col h-screen max-h-full bg-sidebar border-r border-sidebar-border transition-all duration-300",
         sidebarCollapsed ? "w-16" : "w-64",
       )}
     >
