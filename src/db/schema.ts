@@ -91,7 +91,9 @@ export const leadsTable = pgTable("leads", {
   email: text().notNull().unique(),
   company: text().notNull(),
   title: text().notNull(),
-  campaignName: text().notNull(),
+  campaignId: uuid()
+    .notNull()
+    .references(() => campaignTable.id, { onDelete: "cascade" }),
   status: leadStatusEnum().default("pending"),
   lastContactDate: timestamp("last_contact_date", {
     withTimezone: true,

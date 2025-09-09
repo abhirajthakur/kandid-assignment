@@ -58,7 +58,7 @@ export function LeadDetailSheet() {
             {/* Profile Section */}
             <div className="text-center">
               <Avatar className="h-20 w-20 mx-auto mb-4">
-                <AvatarFallback className="text-lg">
+                <AvatarFallback className="text-lg bg-primary text-primary-foreground font-medium">
                   {selectedLead.name
                     .split(" ")
                     .map((n) => n[0])

@@ -1,47 +1,79 @@
 "use server";
 
 import { db } from "@/db";
-import { insertLeadsSchema, leadsTable, updateLeadsSchema } from "@/db/schema";
-import { and, desc, eq, like } from "drizzle-orm";
+import { insertLeadsSchema, leadsTable, campaignTable, updateLeadsSchema } from "@/db/schema";
+import {
+  calculatePagination,
+  createPaginationMeta,
+  type PaginationParams,
+  type PaginatedResponse
+} from "@/lib/pagination";
+import { and, desc, eq, like, ilike, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function getAllLeads(filters?: {
-  status?: string;
-  campaign?: string;
-  search?: string;
-}) {
+export async function getAllLeads(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
   try {
-    let query = db.select().from(leadsTable);
+    const { page, limit, offset } = calculatePagination(params);
 
+    // Build where conditions
     const conditions = [];
 
-    if (filters?.status && filters.status !== "all") {
-      conditions.push(eq(leadsTable.status, filters.status as "pending" | "contacted" | "responded" | "converted"));
+    if (params.status && params.status !== "all") {
+      conditions.push(eq(leadsTable.status, params.status as "pending" | "contacted" | "responded" | "converted"));
     }
 
-    if (filters?.campaign) {
-      conditions.push(like(leadsTable.campaignName, `%${filters.campaign}%`));
+    if (params.campaign) {
+      conditions.push(ilike(campaignTable.name, `%${params.campaign}%`));
     }
 
-    if (filters?.search) {
-      conditions.push(like(leadsTable.name, `%${filters.search}%`));
+    if (params.search) {
+      conditions.push(ilike(leadsTable.name, `%${params.search}%`));
     }
+
+    // Get total count
+    let countQuery = db.select({ count: count() }).from(leadsTable)
+      .leftJoin(campaignTable, eq(leadsTable.campaignId, campaignTable.id));
+    if (conditions.length > 0) {
+      countQuery = countQuery.where(and(...conditions));
+    }
+    const [{ count: total }] = await countQuery;
+
+    // Get paginated data with campaign name
+    let dataQuery = db.select({
+      id: leadsTable.id,
+      name: leadsTable.name,
+      email: leadsTable.email,
+      company: leadsTable.company,
+      title: leadsTable.title,
+      campaignId: leadsTable.campaignId,
+      campaignName: campaignTable.name,
+      status: leadsTable.status,
+      lastContactDate: leadsTable.lastContactDate,
+    }).from(leadsTable)
+      .leftJoin(campaignTable, eq(leadsTable.campaignId, campaignTable.id));
 
     if (conditions.length > 0) {
-      // @ts-expect-error - Drizzle ORM type inference issue with dynamic conditions
-      query = query.where(and(...conditions));
+      dataQuery = dataQuery.where(and(...conditions));
     }
 
-    const leads = await query.orderBy(desc(leadsTable.lastContactDate));
+    const leads = await dataQuery
+      .orderBy(desc(leadsTable.lastContactDate))
+      .limit(limit)
+      .offset(offset);
+
+    const meta = createPaginationMeta(page, limit, total);
 
     return {
       success: true,
       data: leads,
+      meta,
     };
   } catch (error) {
     console.error("Error fetching leads:", error);
     return {
       success: false,
+      data: [],
+      meta: createPaginationMeta(1, 10, 0),
       error: "Failed to fetch leads",
     };
   }
@@ -75,13 +107,38 @@ export async function getLeadById(id: string) {
   }
 }
 
-export async function getRecentActivity(limit = 10) {
+export async function getRecentActivity(params: PaginationParams = {}): Promise<PaginatedResponse<any>> {
   try {
+    const { page, limit, offset } = calculatePagination({
+      ...params,
+      limit: params.limit || 10, // Default to 10 for recent activity
+    });
+
+    // Get total count
+    const [{ count: total }] = await db
+      .select({ count: count() })
+      .from(leadsTable);
+
+    // Get paginated data with campaign name
     const recentLeads = await db
-      .select()
+      .select({
+        id: leadsTable.id,
+        name: leadsTable.name,
+        email: leadsTable.email,
+        company: leadsTable.company,
+        title: leadsTable.title,
+        campaignId: leadsTable.campaignId,
+        campaignName: campaignTable.name,
+        status: leadsTable.status,
+        lastContactDate: leadsTable.lastContactDate,
+      })
       .from(leadsTable)
+      .leftJoin(campaignTable, eq(leadsTable.campaignId, campaignTable.id))
       .orderBy(desc(leadsTable.lastContactDate))
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
+
+    const meta = createPaginationMeta(page, limit, total);
 
     return {
       success: true,
@@ -90,11 +147,14 @@ export async function getRecentActivity(limit = 10) {
         title: `${lead.company}`, // Using company as title for activity
         campaign: lead.campaignName,
       })),
+      meta,
     };
   } catch (error) {
     console.error("Error fetching recent activity:", error);
     return {
       success: false,
+      data: [],
+      meta: createPaginationMeta(1, 10, 0),
       error: "Failed to fetch recent activity",
     };
   }
