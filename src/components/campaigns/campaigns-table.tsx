@@ -36,14 +36,8 @@ const statusColors = {
 
 export function CampaignsTable() {
   const router = useRouter();
-
-  // Debounced search
   const { searchValue, debouncedSearchValue, setSearchValue } = useDebouncedSearch('', 300);
-
-  // Status filter state
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-
-  // Pagination state
   const [pagination, setPagination] = useState<PaginationParams>({
     page: 1,
     limit: 10,
@@ -51,20 +45,18 @@ export function CampaignsTable() {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  // Update pagination when debounced search value changes
   useEffect(() => {
     setPagination(prev => ({
       ...prev,
-      page: 1, // Reset to first page when search changes
+      page: 1,
       search: debouncedSearchValue,
     }));
   }, [debouncedSearchValue]);
 
-  // Update pagination when status filter changes
   useEffect(() => {
     setPagination(prev => ({
       ...prev,
-      page: 1, // Reset to first page when status changes
+      page: 1,
       status: statusFilter === "all" ? undefined : statusFilter,
     }));
   }, [statusFilter]);

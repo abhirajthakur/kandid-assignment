@@ -21,7 +21,6 @@ export async function getAllCampaigns(
   try {
     const { page, limit, offset } = calculatePagination(params);
 
-    // Build where conditions
     const conditions = [];
     if (params.search) {
       conditions.push(ilike(campaignTable.name, `%${params.search}%`));
@@ -41,7 +40,6 @@ export async function getAllCampaigns(
       }
     }
 
-    // Get total count
     let countQuery = db.select({ count: count() }).from(campaignTable);
     if (conditions.length > 0) {
       // @ts-expect-error - Drizzle typing issue with dynamic conditions
@@ -49,7 +47,6 @@ export async function getAllCampaigns(
     }
     const [{ count: total }] = await countQuery;
 
-    // Get paginated data
     let dataQuery = db
       .select()
       .from(campaignTable)

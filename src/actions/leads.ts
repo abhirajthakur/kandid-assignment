@@ -22,7 +22,6 @@ export async function getAllLeads(
   try {
     const { page, limit, offset } = calculatePagination(params);
 
-    // Build where conditions
     const conditions = [];
 
     if (params.status && params.status !== "all") {
@@ -42,7 +41,6 @@ export async function getAllLeads(
       conditions.push(ilike(leadsTable.name, `%${params.search}%`));
     }
 
-    // Get total count
     let countQuery = db
       .select({ count: count() })
       .from(leadsTable)
@@ -53,7 +51,6 @@ export async function getAllLeads(
     }
     const [{ count: total }] = await countQuery;
 
-    // Get paginated data with campaign name
     let dataQuery = db
       .select({
         id: leadsTable.id,
@@ -131,15 +128,13 @@ export async function getRecentActivity(
   try {
     const { page, limit, offset } = calculatePagination({
       ...params,
-      limit: params.limit || 10, // Default to 10 for recent activity
+      limit: params.limit || 10,
     });
 
-    // Get total count
     const [{ count: total }] = await db
       .select({ count: count() })
       .from(leadsTable);
 
-    // Get paginated data with campaign name
     const recentLeads = await db
       .select({
         id: leadsTable.id,
@@ -164,7 +159,7 @@ export async function getRecentActivity(
       success: true,
       data: recentLeads.map((lead) => ({
         ...lead,
-        title: `${lead.company}`, // Using company as title for activity
+        title: `${lead.company}`,
         campaign: lead.campaignName,
       })),
       meta,
@@ -244,7 +239,6 @@ export async function updateLead(data: {
 
     const { id, ...updateData } = validatedFields.data;
 
-    // Update lastContactDate when status changes
     if (updateData.status) {
       updateData.lastContactDate = new Date();
     }
